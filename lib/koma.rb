@@ -23,7 +23,7 @@ movements = {
   gin: gi_movements, kin: ki_movements, kaku: ka_movements,
   hisha: hi_movements, ou: ou_movements, to: to_movements,
   narikyo: ny_movements, narikei: nk_movements, narigin: ng_movements,
-  uma: um_movements, ry: ry_movements
+  uma: um_movements, ryu: ry_movements
 }
 
 csa_names = {
@@ -32,7 +32,7 @@ csa_names = {
 }
 
 class Koma
-  attr_reader :id
+  attr_reader :id, :sengo
 
   def initialize(id=nil, sengo=nil)
     @id = id
@@ -40,9 +40,16 @@ class Koma
   end
 
   def csa_name; ""; end
-  def belongs_to_player?(teban); @sengo == teban; end
-  def belongs_to_enemy?(teban); @sengo != teban; end
+  def belongs_to_player?(teban)
+    type != :empty && @sengo == teban
+  end
+  def belongs_to_enemy?(teban)
+    type != :empty && @sengo != teban
+  end
+
   def prohibited_move?(teban, dan); false; end
+
+  # pinにより移動不可か
   def pin_guard?; false; end
 
   def must_promote?(teban, dan); false; end
@@ -84,6 +91,15 @@ class Fu
       raise TebanException
     end
   end
+  
+  def pin_guard?(direct, move)
+    if direct == :up || direct == :down
+      # 段方向の移動は可
+      false
+    else
+      true
+    end
+  end
 end
 
 class Kyosha
@@ -97,6 +113,15 @@ class Kyosha
       raise TebanException
     end
   end
+
+  def pin_guard?(direct, move)
+    if direct == :up || direct == :down
+      # 段方向の移動は可
+      false
+    else
+      true
+    end
+  end
 end
 
 class Keima
@@ -108,6 +133,132 @@ class Keima
       dan.between?(8, 9)
     else
       raise TebanException
+    end
+  end
+end
+
+class Gin
+  def pin_guard?(direct, move)
+    if Shogi::DIRECTIONS[direct] == move
+      false
+    else
+      true
+    end
+  end
+end
+
+class Kin
+  def pin_guard?(direct, move)
+    if Shogi::DIRECTIONS[direct] == move
+      false
+    else
+      true
+    end
+  end
+end
+
+class Kaku
+  def pin_guard?(direct, move)
+    if direct == :upright || direct == :downleft
+      move[0] != move[1]
+    elsif direct == :upleft || direct == :downright
+      move[0] == move[1]
+    else
+      true
+    end
+  end
+end
+
+class Hisha
+  def pin_guard?(direct, move)
+    if direct == :up || direct == :down
+      # 段方向の移動は可
+      move[0] != 0
+    elsif direct == :right || direct == :left
+      # 筋方向の移動は可
+      move[1] != 0
+    else
+      true
+    end
+  end
+end
+
+class Ou
+  def pin_guard?(direct, move)
+    if Shogi::DIRECTIONS[direct] == move
+      false
+    else
+      true
+    end
+  end
+end
+
+class Narikyo
+  def pin_guard?(direct, move)
+    if Shogi::DIRECTIONS[direct] == move
+      false
+    else
+      true
+    end
+  end
+end
+
+class Narikei
+  def pin_guard?(direct, move)
+    if Shogi::DIRECTIONS[direct] == move
+      false
+    else
+      true
+    end
+  end
+end
+
+class Narigin
+  def pin_guard?(direct, move)
+    if Shogi::DIRECTIONS[direct] == move
+      false
+    else
+      true
+    end
+  end
+end
+
+class Gin
+  def pin_guard?(direct, move)
+    if Shogi::DIRECTIONS[direct] == move
+      false
+    else
+      true
+    end
+  end
+end
+
+class Uma
+  def pin_guard?(direct, move)
+    if direct == :upright || direct == :downleft
+      move[0] != move[1]
+    elsif direct == :upleft || direct == :downright
+      move[0] == move[1]
+    elsif Shogi::DIRECTIONS[direct] == move
+      false
+    else
+      true
+    end
+  end
+end
+
+class Ryu
+  def pin_guard?(direct, move)
+    if direct == :up || direct == :down
+      # 段方向の移動は可
+      move[0] != 0
+    elsif direct == :right || direct == :left
+      # 筋方向の移動は可
+      move[1] != 0
+    elsif Shogi::DIRECTIONS[direct] == move
+      false
+    else
+      true
     end
   end
 end

@@ -3,20 +3,24 @@
 class Board
   def initialize(board=nil)
     @board = board
-    @board ||= init_ban
+    @board ||= Board.create(init_ban)
   end
 
   def init_ban
+    [[:ekyosha, :ekeima, :egin, :ekin, :eou, :ekin, :egin, :ekeima, :ekyosha],
+     [:empty, :ehisha, :empty, :empty, :empty, :empty, :empty, :ekaku, :empty],
+     [:efu, :efu, :efu, :efu, :efu, :efu, :efu, :efu, :efu],
+     [:empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty],
+     [:empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty],
+     [:empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty],
+     [:fu, :fu, :fu, :fu, :fu, :fu, :fu, :fu, :fu],
+     [:empty, :kaku, :empty, :empty, :empty, :empty, :empty, :hisha, :empty],
+     [:kyosha, :keima, :gin, :kin, :ou, :kin, :gin, :keima, :kyosha]]
+  end
+
+  def self.create(board)
     id = 1
-     [[:ekyosha, :ekeima, :egin, :ekin, :eou, :ekin, :egin, :ekeima, :ekyosha],
-      [:empty, :ehisha, :empty, :empty, :empty, :empty, :empty, :ekaku, :empty],
-      [:efu, :efu, :efu, :efu, :efu, :efu, :efu, :efu, :efu],
-      [:empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty],
-      [:empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty],
-      [:empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty],
-      [:fu, :fu, :fu, :fu, :fu, :fu, :fu, :fu, :fu],
-      [:empty, :kaku, :empty, :empty, :empty, :empty, :empty, :hisha, :empty],
-      [:kyosha, :keima, :gin, :kin, :ou, :kin, :gin, :keima, :kyosha]].map do |dan|
+    board = board.map do |dan|
       dan.map do |koma|
         cls_name = ""
         klass = nil
@@ -35,6 +39,7 @@ class Board
         klass
       end
     end
+    Board.new(board)
   end
   
   def each
