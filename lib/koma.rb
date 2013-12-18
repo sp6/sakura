@@ -32,7 +32,8 @@ csa_names = {
 }
 
 class Koma
-  attr_reader :id, :sengo
+  attr_reader :id
+  attr_accessor :sengo
 
   def initialize(id=nil, sengo=nil)
     @id = id

@@ -5,9 +5,8 @@ class Kyokumen
 
   def initialize(ban=nil, sente_hand=nil, gote_hand=nil)
     @ban ||= Board.new
-    
-    @sente_hand ||=  { fu: 0, kyo: 0, kei: 0, gin: 0, kin: 0, kaku: 0, hisha: 0 }
-    @gote_hand ||=  { fu: 0, kyo: 0, kei: 0, gin: 0, kin: 0, kaku: 0, hisha: 0 }
+    @sente_hand ||=  { fu: [], kyosha: [], keima: [], gin: [], kin: [], kaku: [], hisha: [] }
+    @gote_hand ||=  { fu: [], kyosha: [], keima: [], gin: [], kin: [], kaku: [], hisha: [] }
   end
 
   # 合法手を生成
@@ -51,9 +50,9 @@ class Kyokumen
       raise TebanExcepton
     end
     
-    hand.each do |mochigoma, num|
+    hand.each do |mochigoma, ary|
       # 駒数が0の場合は次へ
-      next if num == 0
+      next if ary.size == 0
       
       case mochigoma.kaind_of?
       when :fu
@@ -62,7 +61,7 @@ class Kyokumen
       when :kyosha, :keima
         next if mochigoma.move_prohibited?(teban, dan)
       end
-      te_next << gen_te(teban, -1, -1, suji, dan, mochigoma)
+      te_next << gen_te(teban, 0, 0, suji, dan, mochigoma)
     end
     te_next
   end
@@ -211,6 +210,53 @@ class Kyokumen
     Te.new(teban, Pos.new(from_suji, from_dan), Pos.new(to_suji, to_dan),
            koma, promote, capture)
   end
+
+  def move(te)
+    teban = te.teban
+    from_masu = @ban[te.from.suji, te.from.dan]
+    to_masu = @ban[te.to.suji, te.to.dan]
+    hand = case teban
+    when :sente
+      hand = @sente_hand 
+    when :gote
+      hand = @gote_hand
+    else
+      raise TebanExcepton
+    end
+    
+    if te.from.suji == 0 && te.from.dan == 0
+      # 駒を打つ
+      koma = hand[te.koma.type].shift
+      @ban[te.to.suji, te.to.dan] = koma
+    else
+      # 駒を進める
+      # 持ち駒とする
+      if to_masu.belongs_to_enemy?(teban)
+        to_masu.sengo = teban
+        # 成りの場合は成らずに戻す
+        capture = unpromote(to_masu)
+        te.capture = capture
+        hand[capture.type] << capture
+        @ban[te.to.suji, te.to.dan] = Empty.new
+      end
+      if @ban[te.from.suji, te.from.dan].type != te.koma.type
+        # 成り
+        @ban[te.from.suji, te.from.dan] = promote(@ban[te.from.suji, te.from.dan])
+      end
+      @ban[te.from.suji, te.from.dan], @ban[te.to.suji, te.to.dan] =
+        @ban[te.to.suji, te.to.dan], @ban[te.from.suji, te.from.dan]
+    end
+  end
+  
+  def back(te)
+    @ban[te.from.suji, te.from.dan] = te.koma
+    if te.capture.nil?
+      @ban[te.to.suji, te.to.dan] = :empty
+    else
+      @player_hand[te.capture] -= 1
+      @ban[te.to.suji, te.to.dan] = te.capture
+    end
+  end
   
   def jump_koma?(direct, koma)
     Shogi::JUMP_KOMA[direct].include? koma
@@ -226,9 +272,26 @@ class Kyokumen
     when :gin; Narigin.new(id, sengo)
     when :kaku; Uma.new(id, sengo)
     when :hisha; Ryu.new(id, sengo)
+    else
+      koma
     end
   end
 
+  def unpromote(koma)
+    id = koma.id
+    sengo = koma.sengo
+    case koma.type
+    when :to; Fu.new(id, sengo)
+    when :narikyo; Kyosha.new(id, sengo)
+    when :narikei; Keima.new(id, sengo)
+    when :narigin; Gin.new(id, sengo)
+    when :uma; Kaku.new(id, sengo)
+    when :ryu; Hisha.new(id, sengo)
+    else
+      koma
+    end
+  end
+  
   def keima_kiki?(teban, suji, dan)
     if teban == :sente
       if @ban.on_board?(suji - 1, dan - 2)
@@ -263,5 +326,20 @@ class Kyokumen
     else
       raise TebanException
     end
+  end
+
+  def to_csa
+    csa_names = {
+      fu: "FU", kyosha: "KY", keima: "KE", gin: "GI", kin: "KI", kaku: "KA", hisha: "HI"
+    }
+    puts_hand = lambda do |hand|
+      hand.map { |koma, ary|
+        csa_names[koma] + sprintf("%02d", ary.size) unless ary.size == 0
+      }
+    end
+    res = @ban.to_csa
+    res += "P+#{puts_hand.call(@sente_hand).join}\n"
+    res += "P-#{puts_hand.call(@gote_hand).join}\n"
+    res
   end
 end
