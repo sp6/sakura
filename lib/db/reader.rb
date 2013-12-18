@@ -19,7 +19,7 @@ class Kifu
   end
   
   def forward
-    return if @cur_idx > @sashite.size
+    return if @cur_idx >= @sashite.size
     @kyokumen.move sashite[@cur_idx]
     @cur_idx += 1
   end
@@ -31,7 +31,13 @@ class Kifu
   end
 
   def jump(idx)
-    @cur_idx = idx
+    if @cur_idx < idx
+      diff = idx - @cur_idx
+      diff.times { forward }
+    else
+      diff = @cur_idx - idx
+      diff.times { back }
+    end
   end
 
   def cur_te
@@ -51,17 +57,22 @@ class Kifu
   
   def console_view
     loop do
-      puts "f:forward,b:back,q:quit"
+      puts "f:forward,b:back,j$num:jump,q:quit"
       go = gets.chomp
-      if go == "f"
+      case go
+      when "f"
         forward
         puts "#{@cur_idx}:#{cur_te}"
         puts view
-      elsif go == "b"
+      when "b"
         back
         puts "#{@cur_idx} #{cur_te}"
         puts view
-      elsif go == "q"
+      when /^j(\d+)/
+        jump $1.to_i
+        puts "#{@cur_idx} #{cur_te}"
+        puts view
+      when "q"
         break
       end
     end
