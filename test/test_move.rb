@@ -82,4 +82,9 @@ class TC_Shogi < Test::Unit::TestCase
     pins = @k.search_pins :sente
     assert_equal({"53" => :up, "58" => :down, "77" => :downleft}, pins)
   end
+
+  def test_move_back
+   kifu = <<EOS
+EOS
+  end
 end

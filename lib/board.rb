@@ -16,10 +16,10 @@ class Board
            [:fu, :fu, :fu, :fu, :fu, :fu, :fu, :fu, :fu],
            [:empty, :kaku, :empty, :empty, :empty, :empty, :empty, :hisha, :empty],
            [:kyosha, :keima, :gin, :kin, :ou, :kin, :gin, :keima, :kyosha]]
-    create(ban)
+    Board.convert_class(ban)
   end
 
-  def create(board)
+  def self.convert_class(board)
     id = 1
     board.map do |dan|
       dan.map do |koma|
@@ -43,7 +43,7 @@ class Board
   end
 
   def self.create(board)
-    Board.new(create(board))
+    Board.new(Board.convert_class(board))
   end
   
   def each

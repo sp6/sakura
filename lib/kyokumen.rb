@@ -249,6 +249,38 @@ class Kyokumen
   end
   
   def back(te)
+    teban = te.teban
+    from_masu = @ban[te.from.suji, te.from.dan]
+    to_masu = @ban[te.to.suji, te.to.dan]
+    hand = case teban
+    when :sente
+      hand = @sente_hand 
+    when :gote
+      hand = @gote_hand
+    else
+      raise TebanExcepton
+    end
+    
+    if te.from.suji == 0 && te.from.dan == 0
+      # 打ち駒を戻す
+      hand[te.koma.type] << te.koma
+      @ban[te.to.suji, te.to.dan] = Empty.new
+    else
+      # 駒を戻す
+      if te.caputure.nil? == false
+        # 持ち駒から戻す
+        capture = te.capture
+        hand[capture.type].shift
+        @ban[te.from.suji, te.from.dan] = capture
+      end
+      if @ban[te.from.suji, te.from.dan].type != te.koma.type
+        # 成り
+        @ban[te.from.suji, te.from.dan] = unpromote(@ban[te.from.suji, te.from.dan])
+      end
+      @ban[te.from.suji, te.from.dan], @ban[te.to.suji, te.to.dan] =
+        @ban[te.to.suji, te.to.dan], @ban[te.from.suji, te.from.dan]
+    end
+
     @ban[te.from.suji, te.from.dan] = te.koma
     if te.capture.nil?
       @ban[te.to.suji, te.to.dan] = :empty
