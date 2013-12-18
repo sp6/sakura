@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 require 'set'
 
+class TeException < Exception; end
 class TebanException < Exception; end
 
 Pos = Struct.new("Pos", :suji, :dan)

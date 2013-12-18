@@ -42,8 +42,8 @@ class Board
     end
   end
 
-  def self.create(board)
-    Board.new(Board.convert_class(board))
+  def self.create(board=nil)
+    board == nil ? Board.new : Board.new(Board.convert_class(board))
   end
   
   def each

@@ -223,26 +223,34 @@ class Kyokumen
     else
       raise TebanExcepton
     end
-    
+
+    raise TeException if to_masu.belongs_to_player?(teban)
     if te.from.suji == 0 && te.from.dan == 0
-      # 駒を打つ
+      # 持ち駒を打つ場合
       koma = hand[te.koma.type].shift
       @ban[te.to.suji, te.to.dan] = koma
     else
-      # 駒を進める
-      # 持ち駒とする
+      # 駒を進める場合
+      raise TeException unless from_masu.belongs_to_player?(teban)
+      # 敵の駒がある場合は敵の駒を取る
       if to_masu.belongs_to_enemy?(teban)
+        # 駒の先後を変える
         to_masu.sengo = teban
-        # 成りの場合は成らずに戻す
-        capture = unpromote(to_masu)
-        te.capture = capture
-        hand[capture.type] << capture
+        # 指し手に取った駒を記録する
+        te.capture = to_masu
+        # 駒が成りの場合は成らずに戻して持ち駒に加える
+        hand[unpromote(to_masu).type] << to_masu
         @ban[te.to.suji, te.to.dan] = Empty.new
       end
+
+      # 駒が成る場合
       if @ban[te.from.suji, te.from.dan].type != te.koma.type
-        # 成り
+        # 駒を成る
         @ban[te.from.suji, te.from.dan] = promote(@ban[te.from.suji, te.from.dan])
+        # 指し手に駒の成りを記録する
+        te.promote = true
       end
+      # 駒を進める
       @ban[te.from.suji, te.from.dan], @ban[te.to.suji, te.to.dan] =
         @ban[te.to.suji, te.to.dan], @ban[te.from.suji, te.from.dan]
     end
@@ -260,33 +268,29 @@ class Kyokumen
     else
       raise TebanExcepton
     end
-    
+
+    raise TeException unless to_masu.belongs_to_player?(teban)
     if te.from.suji == 0 && te.from.dan == 0
-      # 打ち駒を戻す
+      # 打った駒を持ち駒に戻す場合
       hand[te.koma.type] << te.koma
       @ban[te.to.suji, te.to.dan] = Empty.new
     else
+      # 進めた駒を戻す場合
+      raise TeException if from_masu.belongs_to_player?(teban)
       # 駒を戻す
-      if te.caputure.nil? == false
-        # 持ち駒から戻す
-        capture = te.capture
-        hand[capture.type].shift
-        @ban[te.from.suji, te.from.dan] = capture
-      end
-      if @ban[te.from.suji, te.from.dan].type != te.koma.type
-        # 成り
-        @ban[te.from.suji, te.from.dan] = unpromote(@ban[te.from.suji, te.from.dan])
-      end
       @ban[te.from.suji, te.from.dan], @ban[te.to.suji, te.to.dan] =
         @ban[te.to.suji, te.to.dan], @ban[te.from.suji, te.from.dan]
-    end
-
-    @ban[te.from.suji, te.from.dan] = te.koma
-    if te.capture.nil?
-      @ban[te.to.suji, te.to.dan] = :empty
-    else
-      @player_hand[te.capture] -= 1
-      @ban[te.to.suji, te.to.dan] = te.capture
+      unless te.capture.nil?
+        # 敵の駒を取っていた場合は持ち駒から戻す
+        @ban[te.to.suji, te.to.dan] = te.capture
+        # 駒の先後を変える
+        @ban[te.to.suji, te.to.dan].sengo = teban == :sente ? :gote : :sente
+        hand[unpromote(@ban[te.to.suji, te.to.dan]).type].shift
+      end
+      if te.promote == true
+        # 成っていた場合は成らずに戻す
+        @ban[te.from.suji, te.from.dan] = unpromote(@ban[te.from.suji, te.from.dan])
+      end
     end
   end
   

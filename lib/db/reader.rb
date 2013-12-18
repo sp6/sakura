@@ -12,37 +12,59 @@ class Kifu
   attr_accessor :start_time, :end_time, :time_limit
   attr_accessor :opening, :others
 
-  attr_accessor :sashite
-  attr_accessor :kyokumen
-
+  attr_accessor :sashite, :kyokumen, :cur_idx
+  
   def initialize
     @cur_idx = 0
   end
   
-  def next
+  def forward
     return if @cur_idx > @sashite.size
     @kyokumen.move sashite[@cur_idx]
     @cur_idx += 1
   end
 
-  def prev
+  def back
     return if @cur_idx <= 0
     @cur_idx -= 1
+    @kyokumen.back sashite[@cur_idx]
   end
 
   def jump(idx)
     @cur_idx = idx
   end
+
+  def cur_te
+    @sashite[@cur_idx]
+  end
   
   def sashite_each
     @sashite.each_with_index do |te, idx|
-      self.next
+      forward
       yield @kyokumen, te, idx + 1
     end
   end
   
   def view
     @kyokumen.to_csa
+  end
+  
+  def console_view
+    loop do
+      puts "f:forward,b:back,q:quit"
+      go = gets.chomp
+      if go == "f"
+        forward
+        puts "#{@cur_idx}:#{cur_te}"
+        puts view
+      elsif go == "b"
+        back
+        puts "#{@cur_idx} #{cur_te}"
+        puts view
+      elsif go == "q"
+        break
+      end
+    end
   end
 end
 
@@ -127,10 +149,11 @@ end
 
 kifu.sashite = sashite
 kifu.kyokumen = Kyokumen.new
-
+kifu.console_view
+=begin
 kifu.sashite_each do |kyokumen, te, tesuu|
   puts "#{tesuu}:#{te}"
   puts kyokumen.to_csa
   gets
 end
-
+=end
