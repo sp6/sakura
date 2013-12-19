@@ -126,7 +126,7 @@ class Kyosha
 end
 
 class Keima
-  def prohibited_move?(teban, dan)
+  def move_prohibited?(teban, dan)
     case teban
     when :sente
       dan.between?(1, 2)

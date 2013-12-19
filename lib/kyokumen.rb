@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 class Kyokumen
-  attr_accessor :ban
+  attr_accessor :ban, :sente_hand, :gote_hand
 
   def initialize(ban=nil, sente_hand=nil, gote_hand=nil)
     @ban ||= Board.new
@@ -54,14 +54,15 @@ class Kyokumen
       # 駒数が0の場合は次へ
       next if ary.size == 0
       
-      case mochigoma.kaind_of?
+      koma = hand[mochigoma].first
+      case koma.type
       when :fu
-        next if mochigoma.move_prohibited?(teban, dan)
+        next if koma.move_prohibited?(teban, dan)
         next if nifu?(teban, suji)
       when :kyosha, :keima
-        next if mochigoma.move_prohibited?(teban, dan)
+        next if koma.move_prohibited?(teban, dan)
       end
-      te_next << gen_te(teban, 0, 0, suji, dan, mochigoma)
+      te_next << gen_te(teban, 0, 0, suji, dan, koma)
     end
     te_next
   end
@@ -326,6 +327,16 @@ class Kyokumen
     else
       koma
     end
+  end
+
+  def nifu?(teban, suji)
+    nifu = false
+    (1..9).each do |dan|
+      if @ban[suji, dan].type == :fu
+        return true
+      end
+    end
+    return false
   end
   
   def keima_kiki?(teban, suji, dan)

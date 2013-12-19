@@ -53,6 +53,40 @@ class TC_Shogi < Test::Unit::TestCase
     te = @k.generate_legal_moves :sente
     assert_equal(26, te.size)
 
+=begin
+    http://d.hatena.ne.jp/ak11/20091107
+    後手の持駒：金　銀　桂　歩五
+      ９ ８ ７ ６ ５ ４ ３ ２ １
+    +---------------------------+
+    |v香 ・ ・ ・ ・ ・ ・v桂v香|一
+    | ・ ・ ・ ・ ・ と ・v金v玉|二
+    | ・ ・v桂v歩 ・ 銀 ・ ・ ・|三
+    |v歩 ・v歩 ・ ・ ・ ・ 歩v歩|四
+    | ・ ・ ・ 歩 ・ ・ 銀v歩 ・|五
+    | ・ 歩 歩v角 ・ ・ 歩 ・ 歩|六
+    | 歩 ・ ・ ・ ・ ・ 金 銀 ・|七
+    | 飛 ・ ・ ・ ・ ・ ・ ・ ・|八
+    | 香 桂 ・ ・ ・ ・v角 玉 香|九
+    +---------------------------+
+    先手の持駒：飛　金
+=end
+    ban = [[:ekyosha, :empty, :empty, :empty, :empty, :empty, :empty, :ekeima, :ekyosha],
+           [:empty, :empty, :empty, :empty, :empty, :to, :empty, :ekin, :eou],
+           [:empty, :empty, :ekeima, :efu, :empty, :gin, :empty, :empty, :empty],
+           [:efu, :empty, :efu, :empty, :empty, :empty, :empty, :fu, :efu],
+           [:empty, :empty, :empty, :fu, :empty, :empty, :gin, :efu, :empty],
+           [:empty, :fu, :fu, :ekaku, :empty, :empty, :fu, :empty, :fu],
+           [:fu, :empty, :empty, :empty, :empty, :empty, :kin, :gin, :empty],
+           [:hisha, :empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty],
+           [:kyosha, :keima, :empty, :empty, :empty, :empty, :ekaku, :ou, :kyosha]]
+    @k.ban = Board.create(ban)
+    @k.sente_hand = { fu: [], kyosha: [], keima: [], gin: [],
+      kin: [Kin.new], kaku: [], hisha: [Hisha.new] }
+    @k.gote_hand = { fu: [Fu.new, Fu.new, Fu.new, Fu.new, Fu.new], kyosha: [],
+      keima: [Keima.new], gin: [Gin.new], kin: [Kin.new], kaku: [], hisha: [] }
+    te = @k.generate_legal_moves :sente
+    assert_equal(199, te.size)
+
     ban = [[:empty, :empty, :empty, :empty, :ehisha, :empty, :empty, :empty, :empty],
            [:empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty],
            [:empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty],
@@ -60,7 +94,6 @@ class TC_Shogi < Test::Unit::TestCase
            [:empty, :empty, :empty, :empty, :hisha, :empty, :empty, :empty, :empty],
            [:empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty],
            [:empty, :empty, :empty, :empty, :ou, :empty, :empty, :empty, :empty],
-           [:empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty],
            [:empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty],
            [:empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty]]
     @k.ban = Board.create(ban)
