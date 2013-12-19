@@ -156,17 +156,20 @@ class Kifu
   end
 end
 
-dir_name = "../../data/"
-file_name = "example.csa"
-file_name = "Semifinal_tsutsukana+yss.csa"
-
-kifu = Kifu.new
-kifu.read(dir_name + file_name)
-kifu.console_view
+if __FILE__ == $0
+  dir_name = "../../data/"
+  file_name = "example.csa"
+  file_name = "Semifinal_tsutsukana+yss.csa"
+  
+  kifu = Kifu.new
+  kifu.read(dir_name + file_name)
+  kifu.console_view
 =begin
-kifu.sashite_each do |kyokumen, te, tesuu|
+  kifu.sashite_each do |kyokumen, te, tesuu|
   puts "#{tesuu}:#{te}"
   puts kyokumen.to_csa
   gets
-end
+  end
 =end
+end
+

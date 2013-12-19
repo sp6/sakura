@@ -52,7 +52,7 @@ class TC_Shogi < Test::Unit::TestCase
     @k.ban = Board.create(ban)
     te = @k.generate_legal_moves :sente
     assert_equal(26, te.size)
-
+    
 =begin
     http://d.hatena.ne.jp/ak11/20091107
     後手の持駒：金　銀　桂　歩五
@@ -80,12 +80,17 @@ class TC_Shogi < Test::Unit::TestCase
            [:hisha, :empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty],
            [:kyosha, :keima, :empty, :empty, :empty, :empty, :ekaku, :ou, :kyosha]]
     @k.ban = Board.create(ban)
-    @k.sente_hand = { fu: [], kyosha: [], keima: [], gin: [],
-      kin: [Kin.new], kaku: [], hisha: [Hisha.new] }
-    @k.gote_hand = { fu: [Fu.new, Fu.new, Fu.new, Fu.new, Fu.new], kyosha: [],
-      keima: [Keima.new], gin: [Gin.new], kin: [Kin.new], kaku: [], hisha: [] }
+    @k.sente_hand = {
+      fu: [], kyosha: [], keima: [], gin: [], kin: [Kin.new(1, :sente)],
+      kaku: [], hisha: [Hisha.new(1, :sente)], ou: [] }
+    @k.gote_hand = {
+      fu: [Fu.new(1, :gote), Fu.new(1, :gote), Fu.new(1, :gote),
+           Fu.new(1, :gote), Fu.new(1, :gote)],
+      kyosha: [], keima: [Keima.new(1, :gote)], gin: [Gin.new(1, :gote)],
+      kin: [Kin.new(1, :gote)], kaku: [], hisha: [], ou: []
+    }
     te = @k.generate_legal_moves :sente
-    assert_equal(199, te.size)
+    assert_equal(143, te.size)
 
     ban = [[:empty, :empty, :empty, :empty, :ehisha, :empty, :empty, :empty, :empty],
            [:empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty],
@@ -96,6 +101,7 @@ class TC_Shogi < Test::Unit::TestCase
            [:empty, :empty, :empty, :empty, :ou, :empty, :empty, :empty, :empty],
            [:empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty],
            [:empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty]]
+    @k = Kyokumen.new
     @k.ban = Board.create(ban)
     te = @k.generate_legal_moves :sente
     assert_equal(16, te.size)
