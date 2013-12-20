@@ -18,7 +18,7 @@ if __FILE__ == $0
          [:fu, :empty, :empty, :empty, :empty, :empty, :kin, :gin, :empty],
          [:hisha, :empty, :empty, :empty, :empty, :empty, :empty, :empty, :empty],
          [:kyosha, :keima, :empty, :empty, :empty, :empty, :ekaku, :ou, :kyosha]]
-  #k = Kyokumen.new
+  k = Kyokumen.new
   #k.ban = Board.new
   k.ban = Board.create(ban)
   k.sente_hand = {
@@ -32,6 +32,6 @@ if __FILE__ == $0
   }
   teban = :sente
   shikou = Shikou.new
-  puts shikou.negamax(teban, k, 0, 0, 0)
+  puts shikou.alphabeta(teban, k, 0, 0, 0)
   pp shikou.best_sashite
 end

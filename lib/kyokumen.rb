@@ -5,11 +5,10 @@ class Kyokumen
 
   def initialize(ban=nil, sente_hand=nil, gote_hand=nil)
     @ban ||= Board.new
-    # TODO :ou
     @sente_hand ||=  { fu: [], kyosha: [], keima: [], gin: [],
-      kin: [], kaku: [], hisha: [], ou: [] }
+      kin: [], kaku: [], hisha: [] }
     @gote_hand ||=  { fu: [], kyosha: [], keima: [], gin: [],
-      kin: [], kaku: [], hisha: [], ou: [] }
+      kin: [], kaku: [], hisha: [] }
   end
 
   # 合法手を生成
@@ -219,6 +218,8 @@ class Kyokumen
     teban = te.teban
     from_masu = @ban[te.from.suji, te.from.dan]
     to_masu = @ban[te.to.suji, te.to.dan]
+    return if to_masu.type == :ou # TODO
+    
     hand = case teban
     when :sente
       hand = @sente_hand 
@@ -265,6 +266,8 @@ class Kyokumen
     teban = te.teban
     from_masu = @ban[te.from.suji, te.from.dan]
     to_masu = @ban[te.to.suji, te.to.dan]
+    return if to_masu.type == :ou && to_masu.sengo != teban # TODO
+    
     hand = case teban
     when :sente
       hand = @sente_hand 

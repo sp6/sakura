@@ -7,7 +7,7 @@ class Shikou
     @best_sashite = Array.new
   end
   
-  def negamax(teban, kyokumen, alpha, beta, depth, max_depth=3)
+  def alphabeta(teban, kyokumen, alpha, beta, depth, max_depth=4)
     other_teban = (teban == :sente ? :gote : :sente)
     
     if depth >= max_depth
@@ -24,18 +24,26 @@ class Shikou
     best_eval = -Float::INFINITY
     next_te.each do |te|
       kyokumen.move te
-      eval = -negamax(other_teban, kyokumen, alpha, beta, depth + 1, max_depth)
+      eval = -alphabeta(other_teban, kyokumen, -beta, -[alpha, best_eval].max, depth + 1, max_depth)
       if eval >= best_eval
         best_te = te
         best_eval = eval
       end
+
+      if best_eval >= beta
+        while @best_sashite.size >= max_depth - depth
+          @best_sashite.pop
+        end
+        @best_sashite.unshift best_te
+        return best_eval
+      end
       kyokumen.back te
     end
-    unless @best_sashite.size == depth
+    
+    while @best_sashite.size >= max_depth - depth
       @best_sashite.pop
     end
     @best_sashite.unshift best_te
-    
-    best_eval
+    return best_eval
   end
 end
