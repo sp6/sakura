@@ -7,7 +7,7 @@ class Shikou
     @best_sashite = Array.new
   end
   
-  def alphabeta(teban, kyokumen, alpha, beta, depth, max_depth=4)
+  def alphabeta(teban, kyokumen, alpha, beta, depth, max_depth=2)
     other_teban = (teban == :sente ? :gote : :sente)
     
     if depth >= max_depth

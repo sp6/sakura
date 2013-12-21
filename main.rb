@@ -4,6 +4,7 @@ require './lib/shogi'
 require './lib/koma'
 require './lib/board'
 require './lib/kyokumen'
+require './lib/evaluator'
 require './lib/shikou'
 
 require 'pp'
