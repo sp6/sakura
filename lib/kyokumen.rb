@@ -9,6 +9,7 @@ class Kyokumen
       kin: [], kaku: [], hisha: [] }
     @gote_hand ||=  { fu: [], kyosha: [], keima: [], gin: [],
       kin: [], kaku: [], hisha: [] }
+    @evaluator = Evaluator.new
   end
 
   # 合法手を生成
@@ -232,11 +233,19 @@ class Kyokumen
     raise TeException if to_masu.belongs_to_player?(teban)
     if te.from.suji == 0 && te.from.dan == 0
       # 持ち駒を打つ場合
+      raise TeException if hand[te.koma.type].nil?
       koma = hand[te.koma.type].shift
+      koma.sengo = teban
       @ban[te.to.suji, te.to.dan] = koma
     else
       # 駒を進める場合
-      raise TeException unless from_masu.belongs_to_player?(teban)
+      if from_masu.type != te.koma.type && promote(from_masu).type != te.koma.type
+        raise TeException
+      end
+      unless from_masu.belongs_to_player?(teban)
+        raise TeException 
+      end
+ 
       # 敵の駒がある場合は敵の駒を取る
       if to_masu.belongs_to_enemy?(teban)
         # 駒の先後を変える
@@ -303,7 +312,7 @@ class Kyokumen
   end
 
   def evaluate(teban)
-    Evaluator.evaluate(self, teban)
+    @evaluator.evaluate(self, teban)
   end
   
   def jump_koma?(direct, koma)
