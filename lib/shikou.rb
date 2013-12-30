@@ -8,18 +8,19 @@ class Shikou
   end
   
   def next_te(teban, kyokumen)
-    alphabeta(teban, kyokumen, Float::MIN, Float::MAX, 0)
+    negamax(teban, kyokumen, Float::MIN, Float::MAX, 0)
     te = @best_sashite.shift
   end
   
-  def alphabeta(teban, kyokumen, alpha, beta, depth, max_depth=2)
+  def negamax(teban, kyokumen, alpha, beta, depth, max_depth=2)
+    kyokumen.teban = teban
     other_teban = (teban == :sente ? :gote : :sente)
     
     if depth >= max_depth
-      return kyokumen.evaluate teban
+      return kyokumen.evaluate
     end
     
-    next_te = kyokumen.generate_legal_moves teban
+    next_te = kyokumen.generate_legal_moves
     # 合法手がない == 詰み
     if next_te.size == 0
       return -Float::MAX
@@ -29,7 +30,7 @@ class Shikou
     best_eval = -Float::MAX
     next_te.each do |te|
       kyokumen.move te
-      eval = -alphabeta(other_teban, kyokumen, -beta, -[alpha, best_eval].max, depth + 1, max_depth)
+      eval = -negamax(other_teban, kyokumen, -beta, -[alpha, best_eval].max, depth + 1, max_depth)
       if eval >= best_eval
         best_te = te
         best_eval = eval

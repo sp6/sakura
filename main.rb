@@ -20,7 +20,6 @@ module Kernel
   end
 end
 
-
 if __FILE__ == $0
 =begin
   ban = [[:ekyosha, :empty, :empty, :empty, :empty, :empty, :empty, :ekeima, :ekyosha],
@@ -55,13 +54,13 @@ if __FILE__ == $0
     gote: Shikou.new,
 #    gote: Human.new
   }
-
-  kyokumen = Kyokumen.new
-  teban = :sente
+  
+  kyokumen = Kyokumen.new(teban: :sente)
   puts kyokumen.to_csa
+  teban = :sente
   loop_with_index do |index|
     # 終局判定
-    next_te = kyokumen.generate_legal_moves teban
+    next_te = kyokumen.generate_legal_moves
     if next_te.size == 0
       if teban == :gote
         puts "win sente"
@@ -79,5 +78,6 @@ if __FILE__ == $0
     puts "#{index+1}手目"
     puts kyokumen.to_csa
     teban = (teban == :sente ? :gote : :sente)
+    kyokumen.teban = teban
   end
 end

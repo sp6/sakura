@@ -1,265 +1,136 @@
 # -*- coding: utf-8 -*-
 
-# [suji, dan]
-fu_movements = [[0, -1]]
-ky_movements = [(1..8).map { |h| [0, -h] }]
-ke_movements = [[-1, -2], [1, -2]]
-gi_movements = [[-1, -1], [0, -1], [1, -1], [-1, 1], [1, 1]]
-ki_movements = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [0, 1]]
-ka_movements = [(1..8).map { |m| [m, -m] }, (1..8).map { |m| [m, m] },
-                (1..8).map { |m| [-m, m] }, (1..8).map { |m| [-m, -m] }]
-hi_movements = [(1..8).map { |h| [0, -h] }, (1..8).map { |h| [0, h] },
-                (1..8).map { |w| [w, 0] }, (1..8).map { |w| [-w, 0] }]
-ou_movements = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]]
-to_movements = ki_movements
-ny_movements = ki_movements
-nk_movements = ki_movements
-ng_movements = ki_movements
-um_movements = ka_movements | [[[-1, 0], [1, 0], [0, -1], [0, 1]]]
-ry_movements = hi_movements | [[[-1, -1], [1, -1], [-1, 1], [1, 1]]]
-
-movements = {
-  fu: fu_movements, kyosha: ky_movements, keima: ke_movements,
-  gin: gi_movements, kin: ki_movements, kaku: ka_movements,
-  hisha: hi_movements, ou: ou_movements, to: to_movements,
-  narikyo: ny_movements, narikei: nk_movements, narigin: ng_movements,
-  uma: um_movements, ryu: ry_movements
-}
-
-csa_names = {
-  fu: "FU", kyosha: "KY", keima: "KE", gin: "GI", kin: "KI", kaku: "KA", hisha: "HI",
-  ou: "OU", to: "TO", narikyo: "NY", narikei: "NK",  narigin: "NG", uma: "UM", ryu: "RY"
-}
-
-class Koma
-  attr_reader :id
-  attr_accessor :sengo
-
-  def initialize(id=nil, sengo=nil)
-    @id = id
-    @sengo = sengo
+module Koma
+  EMP = 0x00
+  FU = 0x01
+  KY = 0x02
+  KE = 0x03
+  GI = 0x04
+  KI = 0x05
+  KA = 0x06
+  HI = 0x07
+  OU = 0x08
+  
+  Promote = 0x80
+  
+  TO = FU | Promote
+  NY = KY | Promote
+  NK = KE | Promote
+  NG = GI | Promote
+  UM = KA | Promote
+  RY = HI | Promote
+  
+  Sente = 0x10
+  Gote = 0x20
+  Out_of_Board = 0x40
+  
+  [:FU, :KY, :KE, :GI, :KI, :KA, :HI, :OU,
+   :TO, :NY, :NK, :NG, :UM, :RY].each do |koma|
+    const_set("S#{koma}", const_get(koma) | Sente)
+    const_set("G#{koma}", const_get(koma) | Gote)
   end
-
-  def csa_name; ""; end
-  def belongs_to_player?(teban)
-    type != :empty && @sengo == teban
-  end
-  def belongs_to_enemy?(teban)
-    type != :empty && @sengo != teban
-  end
-
-  def prohibited_move?(teban, dan); false; end
-
-  # pinにより移動不可か
-  def pin_guard?; false; end
-
-  def must_promote?(teban, dan); false; end
-  alias_method :must_promoted?, :prohibited_move?
-
-  def to_csa
-    teban = case @sengo
-      when :sente; "+"
-      when :gote; "-"
-      else "" end
-    "#{teban}#{csa_name}"
-  end
-end
-
-[:fu, :kyosha, :keima, :gin, :kin, :kaku, :hisha, :ou,
- :to, :narikyo, :narikei, :narigin, :uma, :ryu].each do |koma|
-  klass =  Class.new(Koma) {
-    define_method(:csa_name) { csa_names[koma] }
-    define_method(:movements) { movements[koma] }
-    define_method(:type) { koma }
+  
+  Koma_to_Type = {
+    EMP => :empty,
+    FU => :fu, KY => :kyosha, KE => :keima, GI => :gin, KI => :kin,
+    KA => :kaku, HI => :hisha, OU => :ou,
+    TO => :to, NY => :narikyo, NK => :narikei, NG => :narigin,
+    UM => :uma, RY => :ryu
+  }
+  Type_to_Koma = Koma_to_Type.invert
+  
+  CSA = {
+    fu: "FU", kyosha: "KY", keima: "KE", gin: "GI", kin: "KI", kaku: "KA", hisha: "HI",
+    ou: "OU", to: "TO", narikyo: "NY", narikei: "NK",  narigin: "NG", uma: "UM", ryu: "RY",
+    empty: " * "
   }
   
-  Object.const_set(koma.capitalize, klass)
-end
-
-class Empty < Koma
-  def type; :empty; end
-  def to_csa; " * "; end
-end
-
-class Fu
-  def move_prohibited?(teban, dan)
-    case teban
+  def self.create(type, sengo)
+    koma = Type_to_Koma[type]
+    case sengo
     when :sente
-      dan == 1
+      koma | Sente
     when :gote
-      dan == 9
-    else
-      raise TebanException
+      koma | Gote
     end
   end
   
-  def pin_guard?(direct, move)
-    if direct == :up || direct == :down
-      # 段方向の移動は可
-      false
-    else
-      true
-    end
+  def self.create_from_csa_name(csa_name, sengo)
+    create(CSA.invert[csa_name], sengo)
+  end
+
+  def self.promote(koma)
+    koma | Promote
+  end
+  
+  def self.unpromote(koma)
+    koma & ~Promote
   end
 end
 
-class Kyosha
-  def move_prohibited?(teban, dan)
-    case teban
-    when :sente
-      dan == 1
-    when :gote
-      dan == 9
-    else
-      raise TebanException
-    end
+class Integer
+  def sente?
+    self & Koma::Sente != 0
   end
-
-  def pin_guard?(direct, move)
-    if direct == :up || direct == :down
-      # 段方向の移動は可
-      false
-    else
-      true
-    end
+  
+  def gote?
+    self & Koma::Gote != 0
   end
-end
-
-class Keima
-  def move_prohibited?(teban, dan)
-    case teban
-    when :sente
-      dan.between?(1, 2)
-    when :gote
-      dan.between?(8, 9)
-    else
-      raise TebanException
-    end
+  
+  def out_of_board?
+    self & Koma::Out_of_Board != 0
   end
-end
-
-class Gin
-  def pin_guard?(direct, move)
-    if Shogi::DIRECTIONS[direct] == move
-      false
-    else
-      true
-    end
+    
+  def belongs_to_player?(teban)
+    (teban == :sente && sente?) || (teban == :gote && gote?)
   end
-end
-
-class Kin
-  def pin_guard?(direct, move)
-    if Shogi::DIRECTIONS[direct] == move
-      false
-    else
-      true
-    end
+  
+  def belongs_to_enemy?(teban)
+    (teban == :sente && gote?) || (teban == :gote && sente?)
   end
-end
-
-class Kaku
-  def pin_guard?(direct, move)
-    if direct == :upright || direct == :downleft
-      move[0] != move[1]
-    elsif direct == :upleft || direct == :downright
-      move[0] == move[1]
-    else
-      true
-    end
+    
+  def type
+    Koma::Koma_to_Type[self & 0x8f]
   end
-end
-
-class Hisha
-  def pin_guard?(direct, move)
-    if direct == :up || direct == :down
-      # 段方向の移動は可
-      move[0] != 0
-    elsif direct == :right || direct == :left
-      # 筋方向の移動は可
-      move[1] != 0
-    else
-      true
+  
+  # [suji, dan]
+  fu_movements = [[0, -1]]
+  ky_movements = [(1..8).map { |h| [0, -h] }]
+  ke_movements = [[-1, -2], [1, -2]]
+  gi_movements = [[-1, -1], [0, -1], [1, -1], [-1, 1], [1, 1]]
+  ki_movements = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [0, 1]]
+  ka_movements = [(1..8).map { |m| [m, -m] }, (1..8).map { |m| [m, m] },
+                  (1..8).map { |m| [-m, m] }, (1..8).map { |m| [-m, -m] }]
+  hi_movements = [(1..8).map { |h| [0, -h] }, (1..8).map { |h| [0, h] },
+                  (1..8).map { |w| [w, 0] }, (1..8).map { |w| [-w, 0] }]
+  ou_movements = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]]
+  to_movements = ki_movements
+  ny_movements = ki_movements
+  nk_movements = ki_movements
+  ng_movements = ki_movements
+  um_movements = ka_movements | [[[-1, 0], [1, 0], [0, -1], [0, 1]]]
+  ry_movements = hi_movements | [[[-1, -1], [1, -1], [-1, 1], [1, 1]]]
+  
+  movements = {
+    fu: fu_movements, kyosha: ky_movements, keima: ke_movements,
+    gin: gi_movements, kin: ki_movements, kaku: ka_movements,
+    hisha: hi_movements, ou: ou_movements, to: to_movements,
+    narikyo: ny_movements, narikei: nk_movements, narigin: ng_movements,
+    uma: um_movements, ryu: ry_movements
+  }
+  
+  define_method(:movements) do
+    movements[self.type]
+  end
+  
+  def to_csa_name
+    teban = ""
+    if sente?
+      teban = "+"
+    elsif gote?
+      teban = "-"
     end
+    "#{teban}#{Koma::CSA[type]}"
   end
 end
 
-class Ou
-  def pin_guard?(direct, move)
-    if Shogi::DIRECTIONS[direct] == move
-      false
-    else
-      true
-    end
-  end
-end
-
-class Narikyo
-  def pin_guard?(direct, move)
-    if Shogi::DIRECTIONS[direct] == move
-      false
-    else
-      true
-    end
-  end
-end
-
-class Narikei
-  def pin_guard?(direct, move)
-    if Shogi::DIRECTIONS[direct] == move
-      false
-    else
-      true
-    end
-  end
-end
-
-class Narigin
-  def pin_guard?(direct, move)
-    if Shogi::DIRECTIONS[direct] == move
-      false
-    else
-      true
-    end
-  end
-end
-
-class Gin
-  def pin_guard?(direct, move)
-    if Shogi::DIRECTIONS[direct] == move
-      false
-    else
-      true
-    end
-  end
-end
-
-class Uma
-  def pin_guard?(direct, move)
-    if direct == :upright || direct == :downleft
-      move[0] != move[1]
-    elsif direct == :upleft || direct == :downright
-      move[0] == move[1]
-    elsif Shogi::DIRECTIONS[direct] == move
-      false
-    else
-      true
-    end
-  end
-end
-
-class Ryu
-  def pin_guard?(direct, move)
-    if direct == :up || direct == :down
-      # 段方向の移動は可
-      move[0] != 0
-    elsif direct == :right || direct == :left
-      # 筋方向の移動は可
-      move[1] != 0
-    elsif Shogi::DIRECTIONS[direct] == move
-      false
-    else
-      true
-    end
-  end
-end

@@ -47,51 +47,18 @@ class Kifu
       when /^\+(\d{2})(\d{2})(\w{2})/
         from = $1
         to = $2
-        koma = create($3)
+        koma = Koma.create_from_csa_name($3, :sente)
         @sashite << Te.new(:sente, Pos.new(from[0].to_i, from[1].to_i),
                            Pos.new(to[0].to_i, to[1].to_i), koma)
       when /^\-(\d{2})(\d{2})(\w{2})/
         from = $1
         to = $2
-        koma = create($3)
+        koma = Koma.create_from_csa_name($3, :gote)
         @sashite << Te.new(:gote, Pos.new(from[0].to_i, from[1].to_i),
                            Pos.new(to[0].to_i, to[1].to_i), koma)
+      # TODO
       # 平手初期配置と駒落ち
       end
-    end
-  end
-  
-  def create(csa_name)
-    case csa_name
-    when "FU"
-      Fu.new
-    when "KY"
-      Kyosha.new
-    when "KE"
-      Keima.new
-    when "GI"
-      Gin.new
-    when "KI"
-      Kin.new
-    when "KA"
-      Kaku.new
-    when "HI"
-      Hisha.new
-    when "OU"
-      Ou.new
-    when "TO"
-      To.new
-    when "NY"
-      Narikyo.new
-    when "NK"
-      Narikei.new
-    when "NG"
-      Narigin.new
-    when "UM"
-      Uma.new
-    when "RY"
-      Ryu.new
-    else
     end
   end
   
@@ -138,16 +105,16 @@ class Kifu
       go = gets.chomp
       case go
       when "f"
+        puts "#{@cur_idx+1}:#{cur_te}"
         forward
-        puts "#{@cur_idx}:#{cur_te}"
         puts view
       when "b"
         back
-        puts "#{@cur_idx} #{cur_te}"
+        puts "#{@cur_idx+1}:#{cur_te}"
         puts view
       when /^j(\d+)/
         jump $1.to_i
-        puts "#{@cur_idx} #{cur_te}"
+        puts "#{@cur_idx}:#{cur_te}"
         puts view
       when "q"
         break
@@ -160,16 +127,9 @@ if __FILE__ == $0
   dir_name = "../../data/"
   file_name = "example.csa"
   file_name = "Semifinal_tsutsukana+yss.csa"
-  
+
   kifu = Kifu.new
   kifu.read(dir_name + file_name)
   kifu.console_view
-=begin
-  kifu.sashite_each do |kyokumen, te, tesuu|
-  puts "#{tesuu}:#{te}"
-  puts kyokumen.to_csa
-  gets
-  end
-=end
 end
 

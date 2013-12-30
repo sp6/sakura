@@ -73,14 +73,15 @@ class Evaluator
     }
     hand = case teban
            when :sente
-             hand = kyokumen.sente_hand 
+             hand = kyokumen.hand[:sente]
            when :gote
-             hand = kyokumen.gote_hand
+             hand = kyokumen.hand[:gote]
            else
              raise TebanExcepton
            end
     
     eval = 0
+    
     kyokumen.ban.each do |suji, dan, koma|
       if koma.belongs_to_player?(teban)
         eval += piece_val[koma.type]

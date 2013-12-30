@@ -2,7 +2,6 @@
 require 'set'
 
 class TeException < Exception; end
-class TebanException < Exception; end
 
 Pos = Struct.new("Pos", :suji, :dan)
 class Te < Struct.new(:teban, :from, :to, :koma, :promote, :capture)
@@ -15,7 +14,7 @@ class Te < Struct.new(:teban, :from, :to, :koma, :promote, :capture)
   end
 
   def to_s
-    "#{teban_to_csa}#{from.suji}#{from.dan}#{to.suji}#{to.dan}#{koma.csa_name}"
+    "#{teban_to_csa}#{from.suji}#{from.dan}#{to.suji}#{to.dan}#{koma.to_csa_name}"
   end
 end
 

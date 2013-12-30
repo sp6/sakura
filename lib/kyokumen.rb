@@ -1,21 +1,39 @@
 # -*- coding: utf-8 -*-
 
 class Kyokumen
-  attr_accessor :ban, :sente_hand, :gote_hand
+  attr_accessor :teban, :ban, :hand
 
-  def initialize(ban=nil, sente_hand=nil, gote_hand=nil)
-    @ban ||= Board.new
-    @sente_hand ||=  { fu: [], kyosha: [], keima: [], gin: [],
-      kin: [], kaku: [], hisha: [] }
-    @gote_hand ||=  { fu: [], kyosha: [], keima: [], gin: [],
-      kin: [], kaku: [], hisha: [] }
-    @evaluator = Evaluator.new
+  def initialize(args=nil)
+    if args.nil?
+      @teban = :sente
+      @ban = Board.new
+      @hand = {
+        sente: {
+          fu: 0, kyosha: 0, keima: 0, gin: 0, kin: 0, kaku: 0, hisha: 0
+        },
+        gote: {
+          fu: 0, kyosha: 0, keima: 0, gin: 0, kin: 0, kaku: 0, hisha: 0
+        }
+      }
+    else
+      @teban = args[:teban] || :sente
+      @ban = args[:ban] || Board.new
+      @hand = args[:hand] || {
+        sente: {
+          fu: 0, kyosha: 0, keima: 0, gin: 0, kin: 0, kaku: 0, hisha: 0
+        },
+        gote: {
+          fu: 0, kyosha: 0, keima: 0, gin: 0, kin: 0, kaku: 0, hisha: 0
+        }
+      }
+      @evaluator = Evaluator.new
+    end
   end
-
+  
   # 合法手を生成
-  def generate_legal_moves(teban)
-    @pins = search_pins(teban)
-
+  def generate_legal_moves
+    @pins = search_pins
+    
     te_next = []
     # 王手がかかっていたら防ぐ手を生成
     # if make_anti_oute
@@ -24,116 +42,106 @@ class Kyokumen
     @ban.each do |suji, dan, koma|
       if koma.type == :empty
         # 盤に持ち駒を打つ手を生成
-        te_next += hit_koma(teban, suji, dan)
+        te_next += hit_koma(suji, dan)
       else
         # 自分の駒であるかどうかを確認
-        next unless koma.belongs_to_player?(teban)
+        next unless koma.belongs_to_player?(@teban)
         
         case koma.type
         when :fu, :keima, :gin, :kin, :ou
-          te_next += gen_legal_step_moves(teban, suji, dan, koma)
+          te_next += genarate_legal_step_moves(suji, dan, koma)
         when :kyosha, :kaku, :hisha, :uma, :ryu
-          te_next += gen_legal_jump_moves(teban, suji, dan, koma)
+          te_next += genarate_legal_jump_moves(suji, dan, koma)
         end
       end
     end
       
     te_next
   end
-
-  # 打つ手を生成
-  def hit_koma(teban, suji, dan)
+  
+   # 打つ手を生成
+  def hit_koma(suji, dan)
     te_next = []
-    hand = case teban
-    when :sente
-      hand = @sente_hand 
-    when :gote
-      hand = @gote_hand
-    else
-      raise TebanExcepton
-    end
     
-    hand.each do |mochigoma, ary|
+    player_hand.each do |koma, num|
       # 駒数が0の場合は次へ
-      next if ary.size == 0
+      next if num == 0
       
-      koma = hand[mochigoma].first
-      case koma.type
+      case koma
       when :fu
-        next if koma.move_prohibited?(teban, dan)
-        next if nifu?(teban, suji)
-      when :kyosha, :keima
-        next if koma.move_prohibited?(teban, dan)
+        next if fu_move_prohibited?(dan)
+        next if nifu?(suji)
+      when :kyosha
+        next if kyosha_move_prohibited?(dan)
+      when :keima
+        next if keima_move_prohibited?(dan)
       end
-      te_next << gen_te(teban, 0, 0, suji, dan, koma)
-    end
-    te_next
-  end
-
-  def gen_legal_step_moves(teban, suji, dan, koma)
-    te_next = []
-    
-    koma.movements.each do |move|
-      next_suji, next_dan = do_move(teban, suji, dan, move)
-
-      # 移動先が盤外の場合は手は生成しない
-      next unless @ban.on_board?(next_suji, next_dan)
-      
-      # 移動先に自分の駒がある場合は手は生成しない
-      next if @ban[next_suji, next_dan].belongs_to_player?(teban)
-      
-      # PINの場合は移動不可
-      next if pin_guard?(teban, suji, dan, koma, move)
-
-      # 王の場合，桂馬の効きがあると移動できない
-      next if koma.type == :ou && keima_kiki?(teban, next_suji, next_dan)
-      
-      # 手を生成
-      te_next += gen_te_with_promote(teban, suji, dan, next_suji, next_dan, koma)
+      te_next << genarate_te(0, 0, suji, dan, Koma.create(koma, @teban))
     end
     te_next
   end
   
-  def gen_legal_jump_moves(teban, suji, dan, koma)
+  def player_hand
+    @hand[@teban]
+  end
+    
+  def genarate_legal_step_moves(suji, dan, koma)
+    te_next = []
+    
+    koma.movements.each do |move|
+      next_suji, next_dan = add_move(suji, dan, move)
+      
+      # 移動先が盤外の場合は手は生成しない
+      next unless @ban.on_board?(next_suji, next_dan)
+      
+      # 移動先に自分の駒がある場合は手は生成しない
+      next if @ban[next_suji, next_dan].belongs_to_player?(@teban)
+      
+      # PINの場合は移動不可
+      next if pin_defence?(suji, dan, koma, move)
+      
+      # 手を生成
+      te_next += genarate_te_with_promote(suji, dan, next_suji, next_dan, koma)
+    end
+    te_next
+  end
+  
+  def genarate_legal_jump_moves(suji, dan, koma)
     te_next = []
     
     koma.movements.each do |movements|
       movements.each do |move|
-        next_suji, next_dan = do_move(teban, suji, dan, move)
+        next_suji, next_dan = add_move(suji, dan, move)
         
         # 移動先が盤外の場合は手の生成を打ち切る
         break unless @ban.on_board?(next_suji, next_dan)
         
         # 自分の駒がある場合は手の生成を打ち切る
-        break if @ban[next_suji, next_dan].belongs_to_player?(teban)
+        break if @ban[next_suji, next_dan].belongs_to_player?(@teban)
         
         # PINの場合は移動不可
-        next if pin_guard?(teban, suji, dan, koma, move)
+        next if pin_defence?(suji, dan, koma, move)
         
         # 手を生成
-        te_next += gen_te_with_promote(teban, suji, dan, next_suji, next_dan, koma)
+        te_next += genarate_te_with_promote(suji, dan, next_suji, next_dan, koma)
         
         # 敵の駒がある場合は手の生成を打ち切る
-        break if @ban[next_suji, next_dan].belongs_to_enemy?(teban)
+        break if @ban[next_suji, next_dan].belongs_to_enemy?(@teban)
       end
     end
     
     te_next
   end
   
-  def do_move(teban, suji, dan, move)
-    if teban == :sente
-      next_suji = suji + move[0]
-      next_dan = dan + move[1]
-    elsif teban == :gote
-      next_suji = suji - move[0]
-      next_dan = dan - move[1]
-    else
-      raise TebanException
+  def add_move(suji, dan, move)
+    case @teban
+    when :sente
+      [suji + move[0], dan + move[1]]
+    when :gote
+      [suji - move[0], dan - move[1]]
     end
-    [next_suji, next_dan]
   end
-
+  
   def search_koma(suji, dan, direct)
     begin
       suji += Shogi::DIRECTIONS[direct][:suji]
@@ -141,8 +149,8 @@ class Kyokumen
     end while @ban.on_board?(suji, dan) && @ban[suji, dan].type == :empty
     return suji, dan
   end
-
-  def search_pins(teban)
+  
+  def search_pins
     pins = Hash.new
     @ban.each do |suji, dan, koma|
       next unless koma.type == :ou
@@ -152,12 +160,12 @@ class Kyokumen
         
         # 味方の駒があるか
         if @ban.on_board?(pin_suji, pin_dan) &&
-            @ban[pin_suji, pin_dan].belongs_to_player?(teban)
+            @ban[pin_suji, pin_dan].belongs_to_player?(@teban)
           
           # 敵の飛び駒があるか
           e_suji, e_dan = search_koma(pin_suji, pin_dan, direct)
           if @ban.on_board?(e_suji, e_dan) &&
-              @ban[e_suji, e_dan].belongs_to_enemy?(teban) &&
+              @ban[e_suji, e_dan].belongs_to_enemy?(@teban) &&
               jump_koma?(direct, @ban[e_suji, e_dan].type)
             pins["#{pin_suji}#{pin_dan}"] = direct
           end
@@ -167,189 +175,264 @@ class Kyokumen
     pins
   end
   
-  def pin_guard?(teban, suji, dan, koma, move)
-    if @pins.has_key?("#{suji}#{dan}")
-      koma.pin_guard?(@pins["#{suji}#{dan}"], move)
+  # PINされている駒かどうか
+  def pin_defence?(suji, dan, koma, move)
+    return false unless @pins.has_key?("#{suji}#{dan}")
+    
+    case koma.type
+    when :fu
+      fu_pin_defence?(@pins["#{suji}#{dan}"], move)
+    when :kyosha
+      kyosha_pin_defence?(@pins["#{suji}#{dan}"], move)
+    when :kaku
+      kaku_pin_defence?(@pins["#{suji}#{dan}"], move)
+    when :hisha
+      hisha_pin_defence?(@pins["#{suji}#{dan}"], move)
+    when :uma
+      uma_pin_defence?(@pins["#{suji}#{dan}"], move)
+    when :ryu
+      ryu_pin_defence?(@pins["#{suji}#{dan}"], move)
+    when :gin, :kin, :to, :narikyo, :narikei, :narigin
+      other_pin_defence?(@pins["#{suji}#{dan}"], move)
     else
-      false
+      true
     end
   end
-
-  def promotable?(teban, koma, from_dan, to_dan)
+  
+  def fu_pin_defence?(direct, move)
+    if direct == :up || direct == :down
+      # 段方向の移動は可
+      false
+    else
+      true
+    end
+  end
+  
+  alias_method :kyosha_pin_defence?, :fu_pin_defence?
+  
+  def kaku_pin_defence?(direct, move)
+    if direct == :upright || direct == :downleft
+      move[0] != move[1]
+    elsif direct == :upleft || direct == :downright
+      move[0] == move[1]
+    else
+      true
+    end
+  end
+  
+  def hisha_pin_defence?(direct, move)
+    if direct == :up || direct == :down
+      # 段方向の移動は可
+      move[0] != 0
+    elsif direct == :right || direct == :left
+      # 筋方向の移動は可
+      move[1] != 0
+    else
+      true
+    end
+  end
+    
+  def uma_pin_defence?(direct, move)
+    if direct == :upright || direct == :downleft
+      move[0] != move[1]
+    elsif direct == :upleft || direct == :downright
+      move[0] == move[1]
+    else
+      other_pin_defence?(direct, move)
+    end
+  end
+  
+  def ryu_pin_defence?(direct, move)
+    if direct == :up || direct == :down
+      # 段方向の移動は可
+      move[0] != 0
+    elsif direct == :right || direct == :left
+      # 筋方向の移動は可
+      move[1] != 0
+    else
+      other_pin_defence?(direct, move)
+    end
+  end
+  
+  def other_pin_defence?(direct, move)
+    if Shogi::DIRECTIONS[direct] == move
+      false
+    else
+      true
+    end
+  end
+  
+  # 成りが可能か
+  def promotable?(koma, from_dan, to_dan)
     case koma.type
     when :fu, :kyosha, :keima, :gin, :kaku, :hisha
-      case teban
+      case @teban
       when :sente
         from_dan.between?(1, 3) || to_dan.between?(1, 3)
       when :gote
         from_dan.between?(7, 9) || to_dan.between?(7, 9)
-      else
-        raise TebanException
       end
     else
       false
     end
   end
   
-  def gen_te_with_promote(teban, from_suji, from_dan, to_suji, to_dan, koma)
+  # 成る手も含めて手を生成する
+  def genarate_te_with_promote(from_suji, from_dan, to_suji, to_dan, koma)
     te_next = []
-
+    
     # 移動先が鳴りが必須
-    if koma.must_promote?(teban, from_dan)
-      te_next << gen_te(teban, from_suji, from_dan, to_suji, to_dan, koma, true) 
+    promote_only = false
+    case koma.type
+    when :fu
+      promote_only = true if fu_must_promote?(to_dan)
+    when :kyosha
+      promote_only = true if kyosha_must_promote?(to_dan)
+    when :keima
+      promote_only = true if keima_must_promote?(to_dan)
+    end
+    if promote_only
+      te_next << genarate_te(from_suji, from_dan, to_suji, to_dan, koma, true) 
       return te_next
     end
     
     # 手の生成
-    te_next << gen_te(teban, from_suji, from_dan, to_suji, to_dan, koma)
-    if promotable?(teban, koma, from_dan, to_dan)
+    if promotable?(koma, from_dan, to_dan)
       # 鳴れる場合は鳴る手も指す
-      te_next << gen_te(teban, from_suji, from_dan, to_suji, to_dan, koma, true) 
+      te_next << genarate_te(from_suji, from_dan, to_suji, to_dan, koma)
+      te_next << genarate_te(from_suji, from_dan, to_suji, to_dan, koma, true) 
+    else
+      te_next << genarate_te(from_suji, from_dan, to_suji, to_dan, koma)      
     end
     te_next
   end
-
-  def gen_te(teban, from_suji, from_dan, to_suji, to_dan, koma, promote=false, capture=nil)
-    koma = promote(koma) if promote
-    Te.new(teban, Pos.new(from_suji, from_dan), Pos.new(to_suji, to_dan),
+  
+  # 手を生成する
+  def genarate_te(from_suji, from_dan, to_suji, to_dan, koma, promote=false, capture=nil)
+    koma = Koma.promote(koma) if promote
+    Te.new(@teban, Pos.new(from_suji, from_dan), Pos.new(to_suji, to_dan),
            koma, promote, capture)
   end
-
+  
+  # 1手進める
   def move(te)
     teban = te.teban
     from_masu = @ban[te.from.suji, te.from.dan]
     to_masu = @ban[te.to.suji, te.to.dan]
     return if to_masu.type == :ou # TODO
     
-    hand = case teban
-    when :sente
-      hand = @sente_hand 
-    when :gote
-      hand = @gote_hand
-    else
-      raise TebanExcepton
-    end
-    
     raise TeException if to_masu.belongs_to_player?(teban)
     if te.from.suji == 0 && te.from.dan == 0
       # 持ち駒を打つ場合
-      raise TeException if hand[te.koma.type].nil?
-      koma = hand[te.koma.type].shift
-      koma.sengo = teban
-      @ban[te.to.suji, te.to.dan] = koma
+      raise TeException if @hand[teban][te.koma.type] == 0
+      @hand[teban][te.koma.type] -= 1
+      @ban[te.to.suji, te.to.dan] = Koma.create(te.koma.type, teban)
     else
       # 駒を進める場合
-      if from_masu.type != te.koma.type && promote(from_masu).type != te.koma.type
-        raise TeException
-      end
-      unless from_masu.belongs_to_player?(teban)
-        raise TeException 
-      end
- 
+      raise TeException unless from_masu.belongs_to_player?(teban)
+      
       # 敵の駒がある場合は敵の駒を取る
       if to_masu.belongs_to_enemy?(teban)
-        # 駒の先後を変える
-        to_masu.sengo = teban
         # 指し手に取った駒を記録する
         te.capture = to_masu
         # 駒が成りの場合は成らずに戻して持ち駒に加える
-        hand[unpromote(to_masu).type] << Marshal.load(Marshal.dump(to_masu))
-        @ban[te.to.suji, te.to.dan] = Empty.new
+        @hand[teban][Koma.unpromote(to_masu).type] += 1
+        @ban[te.to.suji, te.to.dan] = Koma::EMP
       end
-
+      
       # 駒が成る場合
-      if @ban[te.from.suji, te.from.dan].type != te.koma.type
+      if from_masu.type != te.koma.type
         # 駒を成る
-        @ban[te.from.suji, te.from.dan] = promote(@ban[te.from.suji, te.from.dan])
+        @ban[te.from.suji, te.from.dan] = Koma.promote(from_masu)
         # 指し手に駒の成りを記録する
         te.promote = true
       end
+      
       # 駒を進める
       @ban[te.from.suji, te.from.dan], @ban[te.to.suji, te.to.dan] =
         @ban[te.to.suji, te.to.dan], @ban[te.from.suji, te.from.dan]
     end
+    # 取った駒や駒の成りを更新した手を返す
     te
   end
   
+  # 1手戻す  
   def back(te)
     teban = te.teban
     from_masu = @ban[te.from.suji, te.from.dan]
     to_masu = @ban[te.to.suji, te.to.dan]
-    return if to_masu.type == :ou && to_masu.sengo != teban # TODO
-    
-    hand = case teban
-    when :sente
-      hand = @sente_hand 
-    when :gote
-      hand = @gote_hand
-    else
-      raise TebanExcepton
+
+    # TODO
+    if to_masu.type == :ou
+      if to_masu.gote? && teban == :sente
+        return
+      elsif to_masu.sente? && teban == :gote
+        return
+      end
     end
-    
+        
+    # 移動先の駒が自分の駒か
     raise TeException unless to_masu.belongs_to_player?(teban)
+    
     if te.from.suji == 0 && te.from.dan == 0
       # 打った駒を持ち駒に戻す場合
-      hand[te.koma.type] << te.koma
-      @ban[te.to.suji, te.to.dan] = Empty.new
+      @hand[teban][te.koma.type] += 1
+      @ban[te.to.suji, te.to.dan] = Koma::EMP
     else
       # 進めた駒を戻す場合
+      # 移動元の駒が自分の駒ではないか
       raise TeException if from_masu.belongs_to_player?(teban)
+      
       # 駒を戻す
       @ban[te.from.suji, te.from.dan], @ban[te.to.suji, te.to.dan] =
         @ban[te.to.suji, te.to.dan], @ban[te.from.suji, te.from.dan]
+      
       unless te.capture.nil?
         # 敵の駒を取っていた場合は持ち駒から戻す
         @ban[te.to.suji, te.to.dan] = te.capture
-        # 駒の先後を変える
-        @ban[te.to.suji, te.to.dan].sengo = teban == :sente ? :gote : :sente
-        hand[unpromote(@ban[te.to.suji, te.to.dan]).type].shift
+        @hand[teban][Koma.unpromote(te.capture).type] -= 1
       end
-      if te.promote == true
+      
+      if te.promote
         # 成っていた場合は成らずに戻す
-        @ban[te.from.suji, te.from.dan] = unpromote(@ban[te.from.suji, te.from.dan])
+        @ban[te.from.suji, te.from.dan] = Koma.unpromote(@ban[te.from.suji, te.from.dan])
       end
     end
   end
-
-  def evaluate(teban)
-    @evaluator.evaluate(self, teban)
+  
+  def evaluate
+    @evaluator.evaluate(self, @teban)
   end
   
   def jump_koma?(direct, koma)
     Shogi::JUMP_KOMA[direct].include? koma
   end
-
-  def promote(koma)
-    id = koma.id
-    sengo = koma.sengo
-    case koma.type
-    when :fu; To.new(id, sengo)
-    when :kyosha; Narikyo.new(id, sengo)
-    when :keima; Narikei.new(id, sengo)
-    when :gin; Narigin.new(id, sengo)
-    when :kaku; Uma.new(id, sengo)
-    when :hisha; Ryu.new(id, sengo)
-    else
-      koma
+  
+  def fu_move_prohibited?(dan)
+    case @teban
+    when :sente
+      dan == 1
+    when :gote
+      dan == 9
+    end
+  end
+  
+  alias_method :kyosha_move_prohibited?, :fu_move_prohibited?
+  alias_method :fu_must_promote?, :fu_move_prohibited?
+  alias_method :kyosha_must_promote?, :fu_move_prohibited?
+  
+  def keima_move_prohibited?(dan)
+    case @teban
+    when :sente
+      dan.between?(1, 2)
+    when :gote
+      dan.between?(8, 9)
     end
   end
 
-  def unpromote(koma)
-    id = koma.id
-    sengo = koma.sengo
-    case koma.type
-    when :to; Fu.new(id, sengo)
-    when :narikyo; Kyosha.new(id, sengo)
-    when :narikei; Keima.new(id, sengo)
-    when :narigin; Gin.new(id, sengo)
-    when :uma; Kaku.new(id, sengo)
-    when :ryu; Hisha.new(id, sengo)
-    else
-      koma
-    end
-  end
-
-  def nifu?(teban, suji)
+  alias_method :keima_must_promote?, :keima_move_prohibited?
+  
+  def nifu?(suji)
     nifu = false
     (1..9).each do |dan|
       if @ban[suji, dan].type == :fu
@@ -359,54 +442,18 @@ class Kyokumen
     return false
   end
   
-  def keima_kiki?(teban, suji, dan)
-    if teban == :sente
-      if @ban.on_board?(suji - 1, dan - 2)
-        koma = @ban[suji - 1, dan - 2]
-        if koma.type == :keima && koma.sengo == :gote
-          true
-        end
-      elsif
-        @ban.on_board?(suji + 1, dan - 2)
-        koma = @ban[suji + 1, dan - 2]
-        if koma.type == :keima && koma.sengo == :gote
-          true
-        end
-      else
-        false
-      end
-    elsif teban == :gote
-      if @ban.on_board?(suji - 1, dan + 2)
-        koma = @ban[suji - 1, dan + 2]
-        if koma.type == :keima && koma.sengo == :sente
-          true
-        end
-      elsif
-        @ban.on_board?(suji + 1, dan + 2)
-        koma = @ban[suji + 1, dan + 2]
-        if koma.type == :keima && koma.sengo == :sente
-          true
-        end
-      else
-        false
-      end
-    else
-      raise TebanException
-    end
-  end
-
   def to_csa
     csa_names = {
       fu: "FU", kyosha: "KY", keima: "KE", gin: "GI", kin: "KI", kaku: "KA", hisha: "HI"
     }
-    puts_hand = lambda do |hand|
-      hand.map { |koma, ary|
-        csa_names[koma] + sprintf("%02d", ary.size) unless ary.size == 0
-      }
+    hand_to_s = lambda do |hand|
+      hand.map { |koma, num|
+        csa_names[koma] + sprintf("%02d", num) unless num == 0
+      }.join
     end
     res = @ban.to_csa
-    res += "P+#{puts_hand.call(@sente_hand).join}\n"
-    res += "P-#{puts_hand.call(@gote_hand).join}\n"
+    res += "P+#{hand_to_s.call(@hand[:sente])}\n"
+    res += "P-#{hand_to_s.call(@hand[:gote])}\n"
     res
   end
 end
