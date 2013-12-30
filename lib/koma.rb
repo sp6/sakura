@@ -22,7 +22,6 @@ module Koma
   
   Sente = 0x10
   Gote = 0x20
-  Out_of_Board = 0x40
   
   [:FU, :KY, :KE, :GI, :KI, :KA, :HI, :OU,
    :TO, :NY, :NK, :NG, :UM, :RY].each do |koma|
@@ -77,10 +76,6 @@ class Integer
     self & Koma::Gote != 0
   end
   
-  def out_of_board?
-    self & Koma::Out_of_Board != 0
-  end
-    
   def belongs_to_player?(teban)
     (teban == :sente && sente?) || (teban == :gote && gote?)
   end
@@ -90,7 +85,7 @@ class Integer
   end
     
   def type
-    Koma::Koma_to_Type[self & 0x8f]
+    Koma::Koma_to_Type[self & 0xCf]
   end
   
   # [suji, dan]
@@ -133,4 +128,3 @@ class Integer
     "#{teban}#{Koma::CSA[type]}"
   end
 end
-
